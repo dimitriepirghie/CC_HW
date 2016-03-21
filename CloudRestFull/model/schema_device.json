@@ -1,0 +1,33 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "id": "http://jsonschema.net",
+  "type": "object",
+  "properties": {
+    "device": {
+      "id": "http://jsonschema.net/device",
+      "type": "object",
+      "properties": {
+        "name": {
+          "id": "http://jsonschema.net/device/name",
+          "type": "string"
+        },
+        "description": {
+          "id": "http://jsonschema.net/device/description",
+          "type": "string"
+        },
+        "node_id": {
+          "id": "http://jsonschema.net/device/node_id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "description",
+        "node_id"
+      ]
+    }
+  },
+  "required": [
+    "device"
+  ]
+}
