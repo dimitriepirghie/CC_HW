@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, redirect, Response
 from google.appengine.api import users
 from google.appengine.ext import ndb
-from Device import Device
+from Device import Device, DeviceData
 import json
 import logging
 
@@ -47,6 +47,26 @@ def get_user(id):
     return make_response(404, 0, "Not found")
 
 
+@app.route('/api/device/<device_name>', methods=['POST'])
+def insert_new_data(device_name):
+    device_owner = "test_o"
+    device_json = request.json.get('device')
+    device_data = device_json['data']
+    device = Device.query(ndb.AND(Device.device_owner == device_owner, Device.device_name == device_name)).fetch()
+
+    if len(device) == 0:
+        return make_response(404, 1, "Device not found")
+    device = device[0]
+
+    new_data = DeviceData(device_data=device_data)
+    device.device_data_records.append(new_data)
+
+    device.put()
+
+    return make_response(201, 1, "Device updated")
+    #return str(device)
+
+
 @app.route('/api/device/add', methods=['POST', 'PUT'])
 def device_add():
     device_json = request.json.get('device')
@@ -70,7 +90,8 @@ def device_add():
     if put_return:
         logging_message += (" added device " + device_name)
         logging.info(logging_message)
-        return str(put_return)
+        return make_response(201, 1, "Resource created")
+        #return str(put_return)
     else:
         logging.error("Update data store error ?")
         make_response(500, 1, "Update data store error ?")
@@ -79,8 +100,7 @@ def device_add():
 @app.route('/api/device', methods=['GET'])
 def show_devices():
     device_owner = "test_o"
-    # owner_devices = Device.query(Device.device_owner == device_owner).fetch()
-
+    logging.info("User " + device_owner + ' viewed devices list')
     return Response(json.dumps([p.to_dict() for p in Device.query(Device.device_owner == device_owner).fetch()]), mimetype='application/json')
 
 
