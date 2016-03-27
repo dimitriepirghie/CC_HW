@@ -1,0 +1,4 @@
+cron:
+- description: every 1 hours check devices availability
+  url: /tasks/check_devices
+  schedule: every 10 minutes
