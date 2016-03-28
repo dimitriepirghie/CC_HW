@@ -5,8 +5,10 @@ from google.appengine.ext import ndb
 from Device import Device, DeviceData
 import json
 import logging
+import time
 
-DEFAULT_USER_NAME = "awesome_user"
+
+DEFAULT_TIME_OUT = 86400 # 24 hours
 
 app = Flask(__name__)
 
@@ -82,15 +84,19 @@ def device_add():
     device_json = request.json.get('device')
     device_name = device_json['name']
     device_description = device_json['description']
+    device_alert_timeout = DEFAULT_TIME_OUT
+    if 'alert_timeout' in device_json.keys():
+        device_alert_timeout = device_json['alert_timeout']
 
     # if device name is key guarantees uniqueness in database
     device_name_key = ndb.Key(Device, device_name)
     device = Device(key=device_name_key, device_owner=device_owner, device_email=device_owner_email,
                     device_name=device_name,
-                    device_description=device_description)
+                    device_description=device_description, device_alert_timeout=device_alert_timeout)
 
     logging_message = str('User ' + device_owner)
-    if request.method == 'POST' and Device.query(Device.device_owner == device_owner).fetch():
+    if request.method == 'POST' and Device.query(ndb.AND(Device.device_owner == device_owner,
+                                                         Device.device_name == device_name)).fetch():
         logging_message += " tried to add existing device"
         logging.info(logging_message)
         return make_response(409, 1, "Device name exists")
@@ -122,17 +128,29 @@ def show_devices():
 
 @app.route('/tasks/check_devices')
 def check_devices():
-    sender_address = "home-automation-platform@appspot.gserviceaccount.com"
-    subject = "home-automation-platform devices update"
-    body = "Every devices is ok"
-    logging.info("Check devices availability ")
-    mail.send_mail(sender_address, "ionut.pirghie@info.uaic.ro", subject, body)
-    return 200
+    current_epoch = int(time.time())
+    for cd in Device.query().fetch():
+        if hasattr(cd, 'device_data_records') and len(cd.device_data_records) > 0:
+            last_datetime = cd.device_data_records[len(cd.device_data_records)-1].update_time
+            last_epoch = int(last_datetime.strftime('%s'))
+            if current_epoch - last_epoch > cd.device_alert_timeout:
+                device_email = cd.device_email
+                sender_address = "dimitriepirghie94@gmail.com"
+                subject = "home-automation-platform devices update"
+                body = str("Your device " + cd.device_name + " not available from " + str(last_datetime))
+                logging.info("Device " + cd.device_name + '/'
+                             + cd.device_owner + " not available from " + str(last_datetime))
+                mail.send_mail(sender_address, device_email, subject, body)
+
+    return Response("Ok")
 
 
 @app.route('/', methods=['GET'])
 def hello_world():
-    return 'Hello from home-automation-platform'
+    """return Response(json.dumps([p.to_dict() for p in Device.query().fetch()],
+                               cls=MyEncoder),
+                   mimetype='application/json')"""
+    return Response("Hellou !")
 
 
 if __name__ == '__main__':

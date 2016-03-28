@@ -16,4 +16,5 @@ class Device(ndb.Model):
     device_email = ndb.StringProperty()
     device_name = ndb.StringProperty()
     device_description = ndb.StringProperty()
+    device_alert_timeout = ndb.IntegerProperty()
     device_data_records = ndb.StructuredProperty(DeviceData, repeated=True)
