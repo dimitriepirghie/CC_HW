@@ -1,0 +1,24 @@
+extends layout
+
+block content
+  h1= title
+  p Welcome to #{title}
+  div(id='messageList')
+  form(id='message-form')
+    input(type='text' id='chat-message')
+    input(type='submit' value='Send')
+  script.
+   cleanConnections();
+   var chatClient = new ChatClient(false)
+   $('#message-form').submit(function(){
+    var message = $('#chat-message').val()
+    chatClient.publish({message: message})
+    this.reset()
+    return false
+   })
+   chatClient.subscribe(function(data){
+    console.log(data.message)
+    var newMessage = $('<p></p>').html(data.message)
+    $('#messageList').append(newMessage)
+   })
+   $('#chat-message').focus()
